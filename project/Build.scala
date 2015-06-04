@@ -21,7 +21,9 @@ object ReactiveTodosBuild extends Build {
 
   val appDependencies = Seq(
     "com.websudos"  %% "phantom-dsl" % V.phantom withSources(),
-    "com.eaio.uuid" % "uuid" % "3.2" withSources() withJavadoc()
+    "com.eaio.uuid" % "uuid" % "3.2" withSources() withSources(),
+    "io.scalac" %% "reactive-rabbit" % "1.0.0" withSources(),
+    "com.typesafe.akka" %% "akka-stream-experimental" % "1.0-RC2" withSources()
   )
 
   val applicationSettings: Seq[Setting[_]] = Seq(
@@ -29,12 +31,11 @@ object ReactiveTodosBuild extends Build {
     libraryDependencies ++= appDependencies,
     scalaVersion        := "2.11.6",
     resolvers           += Resolver.mavenLocal,
-//    routesImport        ++= Seq("extensions.Binders._", "java.util.UUID"),
     scalacOptions       := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions", "-language:postfixOps"),
     javaOptions in Test += "-Dconfig.file=conf/test-application.conf",
     fork in test := true,
     javaOptions in test += "-XX:MaxPermSize=512M -Xmx1024M -Xms1024M -Duser.timezone=UTC -Djava.library.path=/usr/local/lib",
-    resourceDirectory in Test <<= (baseDirectory) apply {(baseDir: File) => baseDir / "test" / "resources"}
+    resourceDirectory in Test <<= baseDirectory apply {(baseDir: File) => baseDir / "test" / "resources"}
   )
 
   val main = Project(appName, file("."))

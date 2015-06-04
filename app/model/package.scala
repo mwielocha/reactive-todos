@@ -15,4 +15,13 @@ package object model {
     implicit val writes = Json.writes[Todo]
 
   }
+
+  case class TodoEvent(userId: Long, todo: Option[Todo])
+
+  object TodoEvent {
+
+    implicit val reads = Json.reads[TodoEvent]
+    implicit val writes = Json.writes[TodoEvent]
+
+  }
 }

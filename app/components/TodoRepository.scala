@@ -72,11 +72,14 @@ class TodoRepository @Inject() (cassandraConnection: CassandraConnection) extend
   }
 
   def addOrUpdate(userId: Long, todo: Todo): Future[Todo] = {
+
+    val id = todo.id.getOrElse(newTimeUUID)
+
     Todos.insert()
       .value(_.userId, userId)
-      .value(_.id, todo.id.getOrElse(newTimeUUID))
+      .value(_.id, id)
       .value(_.name, todo.name)
       .value(_.done, todo.done)
-      .future().map(_ => todo)
+      .future().map(_ => todo.copy(id = Some(id)))
   }
 }
