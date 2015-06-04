@@ -4,17 +4,16 @@ import java.util.UUID
 import javax.inject.{Singleton, Inject}
 
 import com.datastax.driver.core.Row
-import com.websudos.phantom.{dsl, CassandraTable}
+import com.websudos.phantom.CassandraTable
 import com.websudos.phantom.dsl.{BooleanColumn, StringColumn, TimeUUIDColumn, LongColumn}
 import com.websudos.phantom.keys.{PrimaryKey, PartitionKey}
 import logging.LoggingComponent
 import model.Todo
 import com.websudos.phantom.dsl.{context => _, _}
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import uuid.UUIDHelper.newTimeUUID
+import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 /**
  * Created by mwielocha on 04/06/15.
@@ -26,10 +25,19 @@ class TodoRepository @Inject() (cassandraConnection: CassandraConnection) extend
 
   sealed class Todos extends CassandraTable[Todos, Todo] {
 
-    object userId extends LongColumn[Todos, Todo](this) with PartitionKey[Long]
+    object userId extends LongColumn[Todos, Todo](this)
+      with PartitionKey[Long]
 
-    object id extends TimeUUIDColumn[Todos, Todo](this) with PrimaryKey[UUID]
-    object done extends BooleanColumn[Todos, Todo](this) with PrimaryKey[Boolean]
+    object done extends BooleanColumn[Todos, Todo](this)
+      with PrimaryKey[Boolean]
+      with ClusteringOrder[Boolean]
+      with Ascending
+
+    object id extends TimeUUIDColumn[Todos, Todo](this)
+      with PrimaryKey[UUID]
+      with ClusteringOrder[UUID]
+      with Ascending
+
     object name extends StringColumn[Todos, Todo](this)
 
     override def fromRow(r: Row): Todo = Todo(Some(id(r)), name(r), done(r))
@@ -40,22 +48,35 @@ class TodoRepository @Inject() (cassandraConnection: CassandraConnection) extend
   logger.info(Todos.create.queryString)
 
   def findUndoneByUser(userId: Long, limit: Int): Future[List[Todo]] = {
-    Todos.select.where(_.userId eqs userId).limit(limit).fetch()
+    Todos.select
+      .where(_.userId eqs userId)
+      .and(_.done eqs false)
+      .limit(limit)
+      .fetch()
+  }
+
+  def find(userId: Long, id: UUID, done: Boolean): Future[Option[Todo]] = {
+    Todos.select
+      .where(_.userId eqs userId)
+      .and(_.done eqs done)
+      .and(_.id eqs id)
+      .one
+  }
+
+  def delete(userId: Long, id: UUID, done: Boolean): Future[UUID] = {
+    Todos.delete
+      .where(_.userId eqs userId)
+      .and(_.done eqs done)
+      .and(_.id eqs id)
+      .future().map(_ => id)
   }
 
   def addOrUpdate(userId: Long, todo: Todo): Future[Todo] = {
-    todo.id match {
-      case None =>
-        addOrUpdate(userId,
-          todo.copy(id = Some(newTimeUUID)))
-
-      case Some(id) =>
-        Todos.insert()
-          .value(_.userId, userId)
-          .value(_.id, id)
-          .value(_.name, todo.name)
-          .value(_.done, todo.done)
-          .future().map(_ => todo)
-    }
+    Todos.insert()
+      .value(_.userId, userId)
+      .value(_.id, todo.id.getOrElse(newTimeUUID))
+      .value(_.name, todo.name)
+      .value(_.done, todo.done)
+      .future().map(_ => todo)
   }
 }
