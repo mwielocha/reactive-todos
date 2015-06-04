@@ -1,0 +1,29 @@
+*.class
+*.log
+
+# SBT specific
+
+dist/*
+target/
+project/target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+project/target/
+.idea/
+.idea_modules/
+
+# Scala-IDE specific
+
+.scala_dependencies
+/.settings/
+/.project
+/.classpath
+
+.DS_Store
+/RUNNING_PID
+/.history
+/csv/
+
+conf/app.version
