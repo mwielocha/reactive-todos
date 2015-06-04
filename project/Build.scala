@@ -12,16 +12,16 @@ object ReactiveTodosBuild extends Build {
   }
 
   object V {
-    val phantom = "1.8.9"
+    val phantom = "1.8.12"
     val play = "2.4.0"
   }
 
   val appName         = "reactive-todos"
-  val appVersion      = "2.1.0-SNAPSHOT"
+  val appVersion      = "1.0.0-SNAPSHOT"
 
   val appDependencies = Seq(
-    "com.websudos"  %% "phantom-dsl" % V.phantom,
-    "com.websudos"  %% "phantom-testkit" % V.phantom
+    "com.websudos"  %% "phantom-dsl" % V.phantom withSources(),
+    "com.eaio.uuid" % "uuid" % "3.2" withSources() withJavadoc()
   )
 
   val applicationSettings: Seq[Setting[_]] = Seq(
@@ -38,7 +38,7 @@ object ReactiveTodosBuild extends Build {
   )
 
   val main = Project(appName, file("."))
-    .enablePlugins(play.PlayScala)
+    .enablePlugins(play.sbt.Play)
     .settings(applicationSettings: _*)
 
   val appVersionWithHash = "%s-%s-%s".format(appVersion,
