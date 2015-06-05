@@ -5,6 +5,7 @@ import javax.inject.{Singleton, Inject}
 import akka.actor.Actor.Receive
 import akka.actor.{Props, ActorRef, Actor}
 import model.Todo
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -22,7 +23,7 @@ import play.api.Play.current
 class TodosController @Inject() (todoRepository: TodoRepository, todoStreamConsumer: TodoStreamConsumer) extends Controller {
 
   def list(userId: Long) = Action.async {
-    todoRepository.findUndoneByUser(userId, 100).map {
+    todoRepository.findAll(userId, 100).map {
       todos => Ok(Json.toJson(todos))
     }
   }
@@ -34,15 +35,19 @@ class TodosController @Inject() (todoRepository: TodoRepository, todoStreamConsu
   }
 
   def done(userId: Long, id: UUID) = Action.async(parse.empty) { implicit request =>
-    todoRepository.find(userId, id, done = false).flatMap {
-
-      case Some(todo) =>
-        for {
-          _ <- todoRepository.delete(userId, todo.id.get, todo.done)
-          updated <- todoRepository.addOrUpdate(userId, todo.copy(done = true))
-        } yield Ok(Json.toJson(updated))
-
+    Logger.info("UUID v: " + id.version())
+    todoRepository.find(userId, id).flatMap {
       case None => Future.successful(NotFound)
+      case Some(previous) =>
+        todoRepository.addOrUpdate(userId, previous.copy(done = true)).map {
+          updated => Ok(Json.toJson(updated))
+        }
+    }
+  }
+
+  def delete(userId: Long, id: UUID) = Action.async(parse.empty) { implicit request =>
+    todoRepository.delete(userId, id).flatMap {
+      _ => Future.successful(Ok)
     }
   }
 

@@ -3,10 +3,12 @@
 # ~~~~
 
 # Home page
-GET         /                     controllers.ApplicationController.index
+GET         /:userId                           @controllers.ApplicationController.index(userId: Long)
 
 GET         /todos/:userId                     @controllers.TodosController.list(userId: Long)
 POST        /todos/:userId                     @controllers.TodosController.add(userId: Long)
 PUT         /todos/:userId/complete/:id        @controllers.TodosController.done(userId: Long, id: java.util.UUID)
+
+DELETE      /todos/:userId/:id                 @controllers.TodosController.delete(userId: Long, id: java.util.UUID)
 
 GET         /todos/:userId/socket              @controllers.TodosController.socket(userId: Long)

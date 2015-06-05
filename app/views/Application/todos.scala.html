@@ -1,0 +1,169 @@
+@(userId: Long, todos: List[model.Todo])
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Reactive TODOs</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+    <style>
+        body{
+            background-color:#EEEEEE;
+        }
+        .todolist{
+            background-color:#FFF;
+            padding:20px 20px 10px 20px;
+            margin-top:30px;
+        }
+        .todolist h1{
+            margin:0;
+            padding-bottom:20px;
+            text-align:center;
+        }
+        .form-control{
+            border-radius:0;
+        }
+        li.ui-state-default{
+            background:#fff;
+            border:none;
+            border-bottom:1px solid #ddd;
+        }
+
+        li.ui-state-default:last-child{
+            border-bottom:none;
+        }
+
+        .todo-footer{
+            background-color:#F4FCE8;
+            margin:0 -20px -10px -20px;
+            padding: 10px 20px;
+        }
+        #done-todos li {
+            padding:10px 0;
+            border-bottom:1px solid #ddd;
+            text-decoration:line-through;
+        }
+        #done-todos li:last-child{
+            border-bottom:none;
+        }
+        #checkAll{
+            margin-top:10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="todolist not-done">
+             <h1>Todos</h1>
+                <input type="text" class="form-control add-todo" placeholder="Add todo">
+                    <button id="checkAll" class="btn btn-success">Mark all as done</button>
+                    
+                    <hr>
+                    <ul id="undone-todos" class="list-unstyled">
+                    @todos.filterNot(_.done).map { todo =>
+                    <li id="@todo.id" class="ui-state-default">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" value="" />@todo.name</label>
+                        </div>
+                    </li>
+                    }
+                </ul>
+                <div class="todo-footer">
+                    <strong><span class="count-todos"></span></strong> Items Left
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="todolist">
+             <h1>Already Done</h1>
+                <ul id="done-todos" class="list-unstyled">
+                    @todos.filter(_.done).map { todo =>
+                        <li id="@todo.id">@todo.name</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="">
+
+    $("#undone-todos").sortable();
+    $("#undone-todos").disableSelection();
+
+    var socket = new WebSocket('ws://localhost:9000/todos/@userId/socket');
+
+    socket.onmessage = function (event) {
+      var todo = JSON.parse(event.data);
+      if(!todo.done) {
+
+        $('#undone-todos').prepend(
+            '<li id="' + todo.id + '" class="ui-state-default">'
+            + '<div class="checkbox"><label>'
+            + '<input type="checkbox" value="" />' + todo.name + '</label>'
+            + '</div></li>'
+        );
+      } else {
+         console.log('#' + todo.id);
+         $('#undone-todos').find('#' + todo.id).remove();
+         $('#done-todos').prepend('<li id="' + todo.id + '"">' + todo.name + '</li>');
+      }
+    }
+
+    $('.add-todo').on('keypress',function (e) {
+      e.preventDefault
+      if (e.which == 13) {
+           if($(this).val() != ''){
+           var todo = $(this).val();
+             createTodo(todo);
+           }
+      }
+    });
+
+    $('.todolist').on('change','#undone-todos li input[type="checkbox"]', function() {
+        console.log("done!")
+        if($(this).prop('checked')) {
+            
+            var doneTodo = $(this).parent().parent().parent().attr('id');
+            markDone(doneTodo);
+        }
+    });
+
+
+    function createTodo(text) {
+        $.ajax({
+          type: "POST",
+          url: '/todos/@userId',
+          data: JSON.stringify({ 'name': text, 'done': false }),
+          success: function() {},
+          dataType: 'json',
+          contentType: "application/json; charset=utf-8"
+        });
+    }
+
+    function markDone(todo) {
+        //todos/1/complete/9fde1160-0b78-11e8-8033-001d4f4868f9
+        $.ajax({
+          type: "PUT",
+          url: '/todos/@userId/complete/' + todo,
+          data: JSON.stringify({}),
+          success: function() {},
+          dataType: 'json',
+          contentType: "application/json; charset=utf-8"
+        });
+    }
+
+    $("#checkAll").click(function(){
+        $('#undone-todos').find('li').each(function(i, e) { 
+            markDone($(e).attr('id')); 
+        });
+    });
+
+</script>
+</body>
+</html>

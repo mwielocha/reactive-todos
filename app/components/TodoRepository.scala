@@ -28,15 +28,12 @@ class TodoRepository @Inject() (cassandraConnection: CassandraConnection) extend
     object userId extends LongColumn[Todos, Todo](this)
       with PartitionKey[Long]
 
-    object done extends BooleanColumn[Todos, Todo](this)
-      with PrimaryKey[Boolean]
-      with ClusteringOrder[Boolean]
-      with Ascending
-
     object id extends TimeUUIDColumn[Todos, Todo](this)
       with PrimaryKey[UUID]
       with ClusteringOrder[UUID]
-      with Ascending
+      with Descending
+
+    object done extends BooleanColumn[Todos, Todo](this)
 
     object name extends StringColumn[Todos, Todo](this)
 
@@ -47,26 +44,24 @@ class TodoRepository @Inject() (cassandraConnection: CassandraConnection) extend
 
   logger.info(Todos.create.queryString)
 
-  def findUndoneByUser(userId: Long, limit: Int): Future[List[Todo]] = {
+  def findAll(userId: Long, limit: Int): Future[List[Todo]] = {
     Todos.select
       .where(_.userId eqs userId)
-      .and(_.done eqs false)
+      .orderBy(_.id.desc)
       .limit(limit)
       .fetch()
   }
 
-  def find(userId: Long, id: UUID, done: Boolean): Future[Option[Todo]] = {
+  def find(userId: Long, id: UUID): Future[Option[Todo]] = {
     Todos.select
       .where(_.userId eqs userId)
-      .and(_.done eqs done)
       .and(_.id eqs id)
       .one
   }
 
-  def delete(userId: Long, id: UUID, done: Boolean): Future[UUID] = {
+  def delete(userId: Long, id: UUID): Future[UUID] = {
     Todos.delete
       .where(_.userId eqs userId)
-      .and(_.done eqs done)
       .and(_.id eqs id)
       .future().map(_ => id)
   }
