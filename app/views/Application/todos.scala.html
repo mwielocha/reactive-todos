@@ -113,6 +113,8 @@
          $('#undone-todos').find('#' + todo.id).remove();
          $('#done-todos').prepend('<li id="' + todo.id + '"">' + todo.name + '</li>');
       }
+
+      countTodos();
     }
 
     $('.add-todo').on('keypress',function (e) {
@@ -121,6 +123,7 @@
            if($(this).val() != ''){
            var todo = $(this).val();
              createTodo(todo);
+             $(this).val('');
            }
       }
     });
@@ -163,6 +166,13 @@
             markDone($(e).attr('id')); 
         });
     });
+
+    function countTodos(){
+        var count = $("#undone-todos li").length;
+        $('.count-todos').html(count);
+    }
+
+    countTodos();
 
 </script>
 </body>
