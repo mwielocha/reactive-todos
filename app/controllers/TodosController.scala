@@ -51,7 +51,7 @@ class TodosController @Inject() (todoRepository: TodoRepository, todoStreamConsu
     }
   }
 
-  def socket(userId: Long) = WebSocket.acceptWithActor[JsValue, JsValue] { request => out =>
+  def socket(userId: Long) = WebSocket.acceptWithActor[JsValue, JsValue] { implicit request => out =>
     Props(new WebSocketActor(userId, out))
   }
 

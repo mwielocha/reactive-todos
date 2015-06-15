@@ -12,7 +12,6 @@ import play.api.mvc.{Action, Controller}
  * Created by mwielocha on 04/06/15.
  */
 class ApplicationController @Inject() (todoRepository: TodoRepository) extends Controller {
-  requires: Controller =>
 
   def index(userId: Long) = Action.async { implicit request =>
     todoRepository.findAll(userId, 1000).map { todos =>

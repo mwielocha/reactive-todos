@@ -1,5 +1,6 @@
 import java.io.PrintWriter
 
+import play.twirl.sbt.Import.TwirlKeys
 import sbt._
 import Keys._
 import play.PlayImport.PlayKeys._
@@ -37,7 +38,8 @@ object ReactiveTodosBuild extends Build {
     javaOptions in Test += "-Dconfig.file=conf/test-application.conf",
     fork in test := true,
     javaOptions in test += "-XX:MaxPermSize=512M -Xmx1024M -Xms1024M -Duser.timezone=UTC -Djava.library.path=/usr/local/lib",
-    resourceDirectory in Test <<= baseDirectory apply {(baseDir: File) => baseDir / "test" / "resources"}
+    TwirlKeys.templateImports += "controllers._",
+    resourceDirectory in Test <<= baseDirectory apply { (baseDir: File) => baseDir / "test" / "resources" }
   )
 
   val main = Project(appName, file("."))

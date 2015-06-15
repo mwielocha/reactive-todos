@@ -4,6 +4,8 @@
 
 # Home page
 
+GET         /assets/*file                       controllers.Assets.at(path="/public", file)
+
 GET         /uuid                              @controllers.ApplicationController.uuid(count: Option[Int] ?= None)
 GET         /:userId                           @controllers.ApplicationController.index(userId: Long)
 
