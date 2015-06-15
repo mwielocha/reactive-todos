@@ -23,7 +23,9 @@ object ReactiveTodosBuild extends Build {
     "com.websudos"  %% "phantom-dsl" % V.phantom withSources(),
     "com.eaio.uuid" % "uuid" % "3.2" withSources() withSources(),
     "io.scalac" %% "reactive-rabbit" % "1.0.0" withSources(),
-    "com.typesafe.akka" %% "akka-stream-experimental" % "1.0-RC2" withSources()
+    "com.typesafe.akka" %% "akka-stream-experimental" % "1.0-RC2" withSources(),
+    "io.kamon" %% "kamon-core" % "0.4.0",
+    "io.kamon" %% "kamon-statsd" % "0.4.0"
   )
 
   val applicationSettings: Seq[Setting[_]] = Seq(
