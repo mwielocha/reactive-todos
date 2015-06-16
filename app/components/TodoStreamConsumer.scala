@@ -30,7 +30,7 @@ class TodoStreamConsumer @Inject() (configuration: Configuration, todoRepository
   val connection = Connection(configuration.underlying)
 
   logger.info(s"Declaring queue $queueName")
-  connection.queueDeclare(queue).flatMap { _ =>
+  connection.queueDeclare(queue).onComplete { _ =>
     connection.queueBind(queueName, exchangeName, "")
   }
 
