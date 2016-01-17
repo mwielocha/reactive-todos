@@ -1,6 +1,6 @@
 package components
 
-import javax.inject.{Singleton, Inject}
+import javax.inject.{Inject, Singleton}
 
 import com.datastax.driver.core.Cluster
 import com.websudos.phantom.dsl._

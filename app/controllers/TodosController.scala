@@ -1,20 +1,18 @@
 package controllers
 
 import java.util.UUID
-import javax.inject.{Singleton, Inject}
-import akka.actor.Actor.Receive
-import akka.actor.{Props, ActorRef, Actor}
+import javax.inject.{Inject, Singleton}
+
+import akka.actor.{Actor, ActorRef, Props}
+import components.{TodoRepository, TodoStreamConsumer}
 import model.Todo
 import play.api.Logger
+import play.api.Play.current
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, Controller, WebSocket}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-
-import components.{TodoStreamConsumer, TodoRepository}
-import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{WebSocket, Controller, Action}
-
 import scala.concurrent.Future
-import play.api.Play.current
 
 /**
  * Created by mwielocha on 04/06/15.

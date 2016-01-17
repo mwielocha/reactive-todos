@@ -1,57 +1,62 @@
 package components
 
-import javax.inject.{Singleton, Inject}
+import java.nio.charset.Charset
+import javax.inject.{Inject, Singleton}
 
-import akka.actor.{Props, ActorRef, Actor}
-import akka.actor.Actor.Receive
-import akka.stream.ActorFlowMaterializer
-import akka.stream.actor.ActorSubscriber
-import akka.stream.scaladsl.{Sink, Source, Flow}
-import io.scalac.amqp.{Queue, Connection, Delivery}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.{Flow, Sink}
+import com.spingo.op_rabbit.Directives._
+import com.spingo.op_rabbit.stream.RabbitSource
+import com.spingo.op_rabbit.{ConnectionParams, Delivery, RabbitControl}
 import logging.LoggingComponent
-import play.api.Configuration
 import model.TodoEvent
+import play.api.Configuration
 import play.api.libs.json.Json
-import play.libs.Akka
-import scala.concurrent.ExecutionContext.Implicits.global
+
 import scala.collection.mutable
+import scala.concurrent.ExecutionContext
 
 /**
  * Created by mwielocha on 04/06/15.
  */
 @Singleton
-class TodoStreamConsumer @Inject() (configuration: Configuration, todoRepository: TodoRepository) extends LoggingComponent {
+class TodoStreamConsumer @Inject()(val configuration: Configuration,
+                                   val todoRepository: TodoRepository)
+                                  (implicit val actorSystem: ActorSystem, val ec: ExecutionContext) extends LoggingComponent {
 
-  private final val exchangeName = "todo-notification-exchange"
   private final val queueName = "todo-notification-queue"
 
-  final val queue = Queue(queueName, durable = true)
-
-  val connection = Connection(configuration.underlying)
+  private val utf8 = Charset.forName("UTF-8")
 
   logger.info(s"Declaring queue $queueName")
-  connection.queueDeclare(queue).onComplete { _ =>
-    connection.queueBind(queueName, exchangeName, "")
-  }
 
-  implicit val actorSystem = Akka.system
-  implicit val materializer = ActorFlowMaterializer(None, Some(exchangeName))
+  val rabbitControl = actorSystem.actorOf(Props(
+    classOf[RabbitControl],
+    ConnectionParams.fromConfig(
+      configuration.underlying.getConfig("amqp"))
+  ))
 
-  private val dejsonizer = {
-    Flow[Delivery].map { delivery =>
-      val message = delivery.message.body.utf8String
-      logger.info(s"New delivery: $message")
-      Json.parse(message).as[TodoEvent]
-    }
-  }
+  val source = RabbitSource(
+    rabbitControl,
+    channel(qos = 3),
+    consume(queue(
+      queue = queueName,
+      durable = true,
+      exclusive = false,
+      autoDelete = false)),
+    body(as[String])
+  )
+
+  implicit val materializer = ActorMaterializer()
+
+  private val deserializer = Flow[String].map(Json.parse).map(_.as[TodoEvent])
 
   val streamConsumingActor = actorSystem.actorOf(Props(new StreamConsumingActor))
 
-  val sink = Sink.actorRef(streamConsumingActor, "")
+  val sink: Sink[TodoEvent, _] = Sink.actorRef[TodoEvent](streamConsumingActor, "")
 
-  val source = Source(connection.consume(queueName))
-
-  val flow = source via dejsonizer to sink
+  val flow = source.acked via deserializer to sink
   logger.info("Starting the flow...")
   flow.run()
 
@@ -89,7 +94,7 @@ class TodoStreamConsumer @Inject() (configuration: Configuration, todoRepository
           _ ! todo
         }
 
-      case unknow => logger.info(s"Unknown message: $unknow")
+      case unknown => logger.warn(s"Unknown message: $unknown")
     }
   }
 }

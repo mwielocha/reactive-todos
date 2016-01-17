@@ -1,32 +1,28 @@
-import java.io.PrintWriter
-
 import play.twirl.sbt.Import.TwirlKeys
+import sbt.Keys._
 import sbt._
-import Keys._
-import play.PlayImport.PlayKeys._
 
 object ReactiveTodosBuild extends Build {
 
-  def writeToFile(fileName: String, value: String) = {
-    val file = new PrintWriter(new File(fileName))
-    try { file.print(value) } finally { file.close() }
-  }
-
   object V {
-    val phantom = "1.8.12"
-    val play = "2.4.0"
+    val play = "2.4.4"
+    val phantom = "1.12.2"
+    val opRabbit = "1.2.1"
+    val akkaStreams = "2.0.1"
   }
 
   val appName         = "reactive-todos"
   val appVersion      = "1.0.0-SNAPSHOT"
 
   val appDependencies = Seq(
-    "com.websudos"  %% "phantom-dsl" % V.phantom withSources(),
-    "com.eaio.uuid" % "uuid" % "3.2" withSources() withSources(),
-    "io.scalac" %% "reactive-rabbit" % "1.0.0" withSources(),
-    "com.typesafe.akka" %% "akka-stream-experimental" % "1.0-RC2" withSources(),
-    "io.kamon" %% "kamon-core" % "0.4.0",
-    "io.kamon" %% "kamon-statsd" % "0.4.0"
+    "com.websudos"      %% "phantom-dsl"           % V.phantom  withSources(),
+    "com.typesafe.akka" %% "akka-slf4j"            % "2.4.0",
+    "com.eaio.uuid"     %  "uuid"                  % "3.2"      withSources(),
+    "com.spingo"        %% "op-rabbit-core"        % V.opRabbit withSources(),
+    "com.spingo"        %% "op-rabbit-play-json"   % V.opRabbit withSources(),
+    "com.spingo"        %% "op-rabbit-json4s"      % V.opRabbit withSources(),
+    "com.spingo"        %% "op-rabbit-airbrake"    % V.opRabbit withSources(),
+    "com.spingo"        %% "op-rabbit-akka-stream" % V.opRabbit
   )
 
   val applicationSettings: Seq[Setting[_]] = Seq(
@@ -45,9 +41,4 @@ object ReactiveTodosBuild extends Build {
   val main = Project(appName, file("."))
     .enablePlugins(play.sbt.Play)
     .settings(applicationSettings: _*)
-
-  val appVersionWithHash = "%s-%s-%s".format(appVersion,
-    "git rev-parse --abbrev-ref HEAD".!!.trim, "git rev-parse --short HEAD".!!.trim)
-
-  writeToFile("conf/app.version", appVersionWithHash)
 }

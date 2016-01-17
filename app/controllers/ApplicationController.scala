@@ -4,9 +4,10 @@ import javax.inject.Inject
 
 import components.TodoRepository
 import play.api.libs.json.Json
-import uuid.UUIDHelper
-import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.mvc.{Action, Controller}
+import uuid.UUIDHelper
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Created by mwielocha on 04/06/15.

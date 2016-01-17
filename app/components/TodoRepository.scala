@@ -1,25 +1,24 @@
 package components
 
 import java.util.UUID
-import javax.inject.{Singleton, Inject}
+import javax.inject.{Inject, Singleton}
 
 import com.datastax.driver.core.Row
 import com.websudos.phantom.CassandraTable
-import com.websudos.phantom.dsl.{BooleanColumn, StringColumn, TimeUUIDColumn, LongColumn}
-import com.websudos.phantom.keys.{PrimaryKey, PartitionKey}
+import com.websudos.phantom.dsl.{BooleanColumn, LongColumn, StringColumn, TimeUUIDColumn, context => _, _}
+import com.websudos.phantom.keys.{PartitionKey, PrimaryKey}
 import logging.LoggingComponent
 import model.Todo
-import com.websudos.phantom.dsl.{context => _, _}
 import uuid.UUIDHelper.newTimeUUID
-import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Created by mwielocha on 04/06/15.
  */
 @Singleton
-class TodoRepository @Inject() (cassandraConnection: CassandraConnection) extends LoggingComponent {
+class TodoRepository @Inject() (val cassandraConnection: CassandraConnection)
+                               (implicit val ec: ExecutionContext) extends LoggingComponent {
 
   import cassandraConnection._
 
