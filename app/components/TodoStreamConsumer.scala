@@ -51,51 +51,5 @@ class TodoStreamConsumer @Inject()(val configuration: Configuration,
 
   implicit val materializer = ActorMaterializer()
 
-  private val deserializer = AckedFlow[String].map(Json.parse).map(_.as[TodoEvent])
 
-  val streamConsumingActor = actorSystem.actorOf(Props(new StreamConsumingActor))
-
-  val sink: Sink[TodoEvent, _] = Sink.actorRef[TodoEvent](streamConsumingActor, "")
-
-  val flow = (source via deserializer).acked to sink
-  logger.info("Starting the flow...")
-  flow.run()
-
-  def register(userId: Long, actorRef: ActorRef) = {
-    streamConsumingActor ! Register(userId, actorRef)
-  }
-
-  def unregister(userId: Long, actorRef: ActorRef) = {
-    streamConsumingActor ! Unregister(userId, actorRef)
-  }
-
-  case class Register(userId: Long, out: ActorRef)
-  case class Unregister(userId: Long, out: ActorRef)
-
-  class StreamConsumingActor extends Actor {
-
-    val outputs = new mutable.HashMap[Long, List[ActorRef]]
-
-    override def receive = {
-
-      case Register(userId, out) =>
-        val registered = outputs.getOrElse(userId, List.empty)
-        outputs += userId -> (registered :+ out)
-        logger.info(s"Registered new listener for $userId")
-
-      case Unregister(userId, out) =>
-        val registered = outputs.getOrElse(userId, List.empty)
-        outputs += userId -> registered.filterNot(_ == out)
-        logger.info(s"Unregistered listener for $userId")
-
-      case TodoEvent(userId, Some(todo)) =>
-        logger.info(s"New todo detected: $todo")
-
-        outputs.getOrElse(userId, List.empty).foreach {
-          _ ! todo
-        }
-
-      case unknown => logger.warn(s"Unknown message: $unknown")
-    }
-  }
 }

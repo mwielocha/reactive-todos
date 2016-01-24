@@ -21,51 +21,22 @@ import scala.concurrent.Future
 class TodosController @Inject() (todoRepository: TodoRepository, todoStreamConsumer: TodoStreamConsumer) extends Controller {
 
   def list(userId: Long) = Action.async {
-    todoRepository.findAll(userId, 100).map {
-      todos => Ok(Json.toJson(todos))
-    }
+    Future.successful(???)
   }
 
   def add(userId: Long) = Action.async(parse.json) { implicit request =>
-    todoRepository.addOrUpdate(userId, request.body.as[Todo]).map {
-      todo => Ok(Json.toJson(todo))
-    }
+    Future.successful(???)
   }
 
   def done(userId: Long, id: UUID) = Action.async(parse.empty) { implicit request =>
-    Logger.info("UUID v: " + id.version())
-    todoRepository.find(userId, id).flatMap {
-      case None => Future.successful(NotFound)
-      case Some(previous) =>
-        todoRepository.addOrUpdate(userId, previous.copy(done = true)).map {
-          updated => Ok(Json.toJson(updated))
-        }
-    }
+    Future.successful(???)
   }
 
   def delete(userId: Long, id: UUID) = Action.async(parse.empty) { implicit request =>
-    todoRepository.delete(userId, id).flatMap {
-      _ => Future.successful(Ok)
-    }
+    Future.successful(???)
   }
 
   def socket(userId: Long) = WebSocket.acceptWithActor[JsValue, JsValue] { implicit request => out =>
-    Props(new WebSocketActor(userId, out))
-  }
-
-  class WebSocketActor(userId: Long, out: ActorRef) extends Actor {
-
-    override def receive: Receive = {
-      case todo: Todo =>
-        out ! Json.toJson(todo)
-    }
-
-    override def preStart(): Unit = {
-      todoStreamConsumer.register(userId, self)
-    }
-
-    override def postStop(): Unit = {
-      todoStreamConsumer.unregister(userId, self)
-    }
+    ???
   }
 }
