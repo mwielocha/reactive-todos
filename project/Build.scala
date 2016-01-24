@@ -29,7 +29,7 @@ object ReactiveTodosBuild extends Build {
     version := appVersion,
     libraryDependencies ++= appDependencies,
     scalaVersion        := "2.11.6",
-    resolvers           += Resolver.mavenLocal,
+    resolvers           ++= Seq("SpinGo OSS" at "http://spingo-oss.s3.amazonaws.com/repositories/releases", Resolver.mavenLocal),
     scalacOptions       := Seq("-unchecked", "-deprecation", "-feature", "-language:implicitConversions", "-language:postfixOps"),
     javaOptions in Test += "-Dconfig.file=conf/test-application.conf",
     fork in test := true,
