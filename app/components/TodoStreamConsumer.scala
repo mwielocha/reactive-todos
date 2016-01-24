@@ -9,6 +9,7 @@ import akka.stream.scaladsl.{Flow, Sink}
 import com.spingo.op_rabbit.Directives._
 import com.spingo.op_rabbit.stream.RabbitSource
 import com.spingo.op_rabbit.{ConnectionParams, Delivery, RabbitControl}
+import com.timcharper.acked.AckedFlow
 import logging.LoggingComponent
 import model.TodoEvent
 import play.api.Configuration
@@ -50,13 +51,13 @@ class TodoStreamConsumer @Inject()(val configuration: Configuration,
 
   implicit val materializer = ActorMaterializer()
 
-  private val deserializer = Flow[String].map(Json.parse).map(_.as[TodoEvent])
+  private val deserializer = AckedFlow[String].map(Json.parse).map(_.as[TodoEvent])
 
   val streamConsumingActor = actorSystem.actorOf(Props(new StreamConsumingActor))
 
   val sink: Sink[TodoEvent, _] = Sink.actorRef[TodoEvent](streamConsumingActor, "")
 
-  val flow = source.acked via deserializer to sink
+  val flow = (source via deserializer).acked to sink
   logger.info("Starting the flow...")
   flow.run()
 
