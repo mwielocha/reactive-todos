@@ -9,15 +9,18 @@ object ReactiveTodosBuild extends Build {
     val phantom = "1.12.2"
     val opRabbit = "1.2.1"
     val akkaStreams = "2.0.1"
+    val akka = "2.4.1"
   }
 
   val appName         = "reactive-todos"
   val appVersion      = "1.0.0-SNAPSHOT"
 
   val appDependencies = Seq(
-    "com.websudos"      %% "phantom-dsl"           % V.phantom  withSources(),
-    "com.typesafe.akka" %% "akka-slf4j"            % "2.4.0",
-    "com.eaio.uuid"     %  "uuid"                  % "3.2"      withSources(),
+    "com.typesafe.akka" %% "akka-cluster-sharding"              % V.akka withSources(),
+    "com.typesafe.akka" %% "akka-distributed-data-experimental" % V.akka withSources(),
+    "com.websudos"      %% "phantom-dsl"                        % V.phantom  withSources(),
+    "com.typesafe.akka" %% "akka-slf4j"                         % "2.4.0",
+    "com.eaio.uuid"     %  "uuid"                               % "3.2"      withSources(),
     "com.spingo"        %% "op-rabbit-core"        % V.opRabbit withSources(),
     "com.spingo"        %% "op-rabbit-play-json"   % V.opRabbit withSources(),
     "com.spingo"        %% "op-rabbit-json4s"      % V.opRabbit withSources(),

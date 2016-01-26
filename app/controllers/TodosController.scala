@@ -4,6 +4,7 @@ import java.util.UUID
 import javax.inject.{Inject, Singleton}
 
 import akka.actor.{Actor, ActorRef, Props}
+import components.UserManager.{Unregister, Register}
 import components.{TodoRepository, TodoStreamConsumer}
 import model.Todo
 import play.api.Logger
@@ -61,11 +62,11 @@ class TodosController @Inject() (todoRepository: TodoRepository, todoStreamConsu
     }
 
     override def preStart(): Unit = {
-      todoStreamConsumer.register(userId, self)
+      todoStreamConsumer.region ! Register(userId, self)
     }
 
     override def postStop(): Unit = {
-      todoStreamConsumer.unregister(userId, self)
+      todoStreamConsumer.region ! Unregister(userId, self)
     }
   }
 }

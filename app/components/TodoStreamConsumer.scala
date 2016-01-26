@@ -3,7 +3,9 @@ package components
 import java.nio.charset.Charset
 import javax.inject.{Inject, Singleton}
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.Actor.Receive
+import akka.actor._
+import akka.cluster.sharding.{ClusterShardingSettings, ClusterSharding, ShardRegion}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink}
 import com.spingo.op_rabbit.Directives._
@@ -26,9 +28,16 @@ class TodoStreamConsumer @Inject()(val configuration: Configuration,
                                    val todoRepository: TodoRepository)
                                   (implicit val actorSystem: ActorSystem, val ec: ExecutionContext) extends LoggingComponent {
 
-  private final val queueName = "todo-notification-queue"
 
-  private val utf8 = Charset.forName("UTF-8")
+  val region = ClusterSharding(actorSystem).start(
+    typeName = "userManager",
+    entityProps = Props[UserManager],
+    settings = ClusterShardingSettings(actorSystem),
+    extractEntityId = UserManager.extractEntityId,
+    extractShardId = UserManager.extractShardId
+  )
+
+  private final val queueName = "todo-notification-queue"
 
   logger.info(s"Declaring queue $queueName")
 
@@ -53,49 +62,65 @@ class TodoStreamConsumer @Inject()(val configuration: Configuration,
 
   private val deserializer = AckedFlow[String].map(Json.parse).map(_.as[TodoEvent])
 
-  val streamConsumingActor = actorSystem.actorOf(Props(new StreamConsumingActor))
+  class MessageForwarderSink extends Actor with ActorLogging {
+    override def receive: Receive = {
+      case m => log.info(s"Stream: $m"); region.forward(m)
+    }
+  }
 
-  val sink: Sink[TodoEvent, _] = Sink.actorRef[TodoEvent](streamConsumingActor, "")
+  val sink: Sink[TodoEvent, _] = Sink.actorRef(actorSystem.actorOf(Props(new MessageForwarderSink)), "")
 
   val flow = (source via deserializer).acked to sink
   logger.info("Starting the flow...")
   flow.run()
 
-  def register(userId: Long, actorRef: ActorRef) = {
-    streamConsumingActor ! Register(userId, actorRef)
-  }
+}
 
-  def unregister(userId: Long, actorRef: ActorRef) = {
-    streamConsumingActor ! Unregister(userId, actorRef)
-  }
+object UserManager {
 
   case class Register(userId: Long, out: ActorRef)
   case class Unregister(userId: Long, out: ActorRef)
 
-  class StreamConsumingActor extends Actor {
+  val extractEntityId: ShardRegion.ExtractEntityId = {
+    case m@Register(id, _) => id.toString -> m
+    case m@Unregister(id, _) => id.toString -> m
+    case e@TodoEvent(id, _) => id.toString -> e
+  }
 
-    val outputs = new mutable.HashMap[Long, List[ActorRef]]
+  val numberOfShards = 100
 
-    override def receive = {
+  val extractShardId: ShardRegion.ExtractShardId = {
+    case Register(id, m) => (id % numberOfShards).toString
+    case Unregister(id, m) => (id % numberOfShards).toString
+    case e@TodoEvent(id, _) => (id % numberOfShards).toString
+  }
+}
 
-      case Register(userId, out) =>
-        val registered = outputs.getOrElse(userId, List.empty)
-        outputs += userId -> (registered :+ out)
-        logger.info(s"Registered new listener for $userId")
+class UserManager extends Actor with ActorLogging {
 
-      case Unregister(userId, out) =>
-        val registered = outputs.getOrElse(userId, List.empty)
-        outputs += userId -> registered.filterNot(_ == out)
-        logger.info(s"Unregistered listener for $userId")
+  val outputs = new mutable.HashMap[Long, List[ActorRef]]
 
-      case TodoEvent(userId, Some(todo)) =>
-        logger.info(s"New todo detected: $todo")
+  import UserManager._
 
-        outputs.getOrElse(userId, List.empty).foreach {
-          _ ! todo
-        }
+  override def receive = {
 
-      case unknown => logger.warn(s"Unknown message: $unknown")
-    }
+    case Register(userId, out) =>
+      val registered = outputs.getOrElse(userId, List.empty)
+      outputs += userId -> (registered :+ out)
+      log.info(s"Registered new listener for $userId")
+
+    case Unregister(userId, out) =>
+      val registered = outputs.getOrElse(userId, List.empty)
+      outputs += userId -> registered.filterNot(_ == out)
+      log.info(s"Unregistered listener for $userId")
+
+    case TodoEvent(userId, Some(todo)) =>
+      log.info(s"New todo detected: $todo")
+
+      outputs.getOrElse(userId, List.empty).foreach {
+        _ ! todo
+      }
+
+    case unknown => log.warning(s"Unknown message: $unknown")
   }
 }
