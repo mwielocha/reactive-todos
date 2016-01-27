@@ -26,7 +26,7 @@ import scala.concurrent.ExecutionContext
 class TodoStreamConsumer @Inject()(val configuration: Configuration,
                                    val todoRepository: TodoRepository)
                                   (implicit val actorSystem: ActorSystem, val ec: ExecutionContext) extends LoggingComponent {
-  
+
   val rabbitControl = actorSystem.actorOf(Props(
     classOf[RabbitControl],
     ConnectionParams.fromConfig(
