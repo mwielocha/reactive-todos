@@ -27,3 +27,5 @@ project/target/
 /csv/
 
 conf/app.version
+/.ensime
+.ensime_cache
