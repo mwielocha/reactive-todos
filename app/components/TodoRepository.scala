@@ -64,7 +64,7 @@ class TodoRepository @Inject() (val cassandraConnection: CassandraConnection)
       .and(_.id eqs id)
       .future().map(_ => id)
   }
-
+  
   def addOrUpdate(userId: Long, todo: Todo): Future[Todo] = {
 
     val id = todo.id.getOrElse(newTimeUUID)
